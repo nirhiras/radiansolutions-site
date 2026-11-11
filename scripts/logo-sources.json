@@ -1,0 +1,125 @@
+[
+  {
+    "slug": "otsi",
+    "name": "Office of Technology & Solutions Integration",
+    "site": "https://otsi.ca.gov",
+    "logoUrl": "https://otsi.ca.gov/images/OTSI_Logo_Transparent.png"
+  },
+  {
+    "slug": "dhcs",
+    "name": "Department of Health Care Services",
+    "site": "https://www.dhcs.ca.gov",
+    "logoUrl": "https://www.dhcs.ca.gov/wp-content/themes/dhcs-main/dist/svg/logo.svg"
+  },
+  {
+    "slug": "ftb",
+    "name": "Franchise Tax Board",
+    "site": "https://www.ftb.ca.gov",
+    "logoUrl": "https://www.ftb.ca.gov/images/logo-v8.png"
+  },
+  {
+    "slug": "doj",
+    "name": "California Department of Justice",
+    "site": "https://www.oag.ca.gov"
+  },
+  {
+    "slug": "cdph",
+    "name": "California Department of Public Health",
+    "site": "https://www.cdph.ca.gov/"
+  },
+  {
+    "slug": "edd",
+    "name": "Employment Development Department",
+    "site": "https://edd.ca.gov"
+  },
+  {
+    "slug": "hcd",
+    "name": "Housing & Community Development",
+    "site": "https://www.hcd.ca.gov/"
+  },
+  {
+    "slug": "calstrs",
+    "name": "CalSTRS",
+    "site": "https://www.calstrs.com/"
+  },
+  {
+    "slug": "fiscal",
+    "name": "FI$Cal",
+    "site": "https://fiscal.ca.gov/"
+  },
+  {
+    "slug": "cdcr",
+    "name": "Corrections & Rehabilitation",
+    "site": "https://www.cdcr.ca.gov/"
+  },
+  {
+    "slug": "calpers",
+    "name": "CalPERS",
+    "site": "https://www.calpers.ca.gov/"
+  },
+  {
+    "slug": "csac",
+    "name": "California Student Aid Commission",
+    "site": "https://www.csac.ca.gov/"
+  },
+  {
+    "slug": "gsa",
+    "name": "General Services Administration",
+    "site": "https://www.gsa.gov/"
+  },
+  {
+    "slug": "ust",
+    "name": "UST Global",
+    "site": "https://www.ust.com/"
+  },
+  {
+    "slug": "ey",
+    "name": "Ernst & Young",
+    "site": "https://www.ey.com/en_us"
+  },
+  {
+    "slug": "kforce",
+    "name": "Kforce",
+    "site": "https://www.kforce.com/"
+  },
+  {
+    "slug": "valiant",
+    "name": "Valiant Solutions",
+    "site": "https://www.valiantsolutions.com/"
+  },
+  {
+    "slug": "getinge",
+    "name": "Getinge",
+    "site": "https://www.getinge.com/us/"
+  },
+  {
+    "slug": "anthropic",
+    "name": "Anthropic",
+    "site": "https://www.anthropic.com/"
+  },
+  {
+    "slug": "databricks",
+    "name": "Databricks",
+    "site": "https://www.databricks.com/"
+  },
+  {
+    "slug": "snowflake",
+    "name": "Snowflake",
+    "site": "https://www.snowflake.com/en/"
+  },
+  {
+    "slug": "forescout",
+    "name": "Forescout",
+    "site": "https://www.forescout.com/"
+  },
+  {
+    "slug": "datadog",
+    "name": "Datadog",
+    "site": "https://www.datadoghq.com/"
+  },
+  {
+    "slug": "anaplan",
+    "name": "Anaplan",
+    "site": "https://www.anaplan.com/"
+  }
+]

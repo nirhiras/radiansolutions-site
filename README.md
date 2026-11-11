@@ -16,6 +16,49 @@ Every page has a small **Dark | Light** switch in the bottom-right corner. Dark 
 - Both themes share `public/assets/`, the same API routes and the same private PDF.
 - When you change text on a page, change it in **both** `public/<page>.html` and `public/light/<page>.html`.
 
+## Saving leads (Supabase)
+
+Everyone who requests a document or sends the contact form is saved in the `web_leads` table: name, email, title, company, comments, which document (`source`), and when. Contact-form messages use `source = contact-form`.
+
+- The table lives in the Supabase project **RadianSolutions-site** (`https://iazhaltgsiirihtyfltk.supabase.co`). In Railway set `SUPABASE_URL` to that address and `SUPABASE_SERVICE_ROLE_KEY` to the project's secret key (Supabase, Project Settings, API Keys).
+- On startup and every 12 hours the server checks the table and writes `[leads] database check OK` (or a clear `FAILED` line) to the Railway logs. Each save writes `[leads] saved source=...`.
+- Free Supabase projects pause when idle, and a paused project cannot save leads. The 12-hour check helps, but the dependable fix is the Pro plan.
+- View the leads in Supabase under Table Editor, `web_leads`.
+
+## Test email delivery before you publish
+
+1. `cp .env.example .env`, then open `.env` and fill in `RESEND_API_KEY`, `DOWNLOAD_SIGNING_SECRET` (any 32+ random characters, e.g. `openssl rand -hex 32`), and set `SITE_URL=http://localhost:3000`. Leave the Supabase lines empty to skip saving leads while testing.
+2. `npm install`
+3. `npm run test:email -- your.name@gmail.com` sends a visitor-style confirmation to that outside address and a lead alert to `LEAD_NOTIFY_EMAIL` (info@radiansolutions.com), then asks Resend for the delivery status of each. Open each inbox, and its Junk folder, to confirm.
+4. `npm run start:local`, open http://localhost:3000/capability-statement, submit the form with an outside address, and confirm both emails arrive and the emailed link downloads the PDF. The terminal prints `[mail] ... accepted by Resend` lines with Resend message ids.
+
+`.env` is listed in `.gitignore` and must never be committed.
+
+## Client logos
+
+The Home page shows a logo wall ("Good company to keep"). Each tile loads `/logos/<slug>`, which serves `public/assets/clients/<slug>.svg|png|webp|jpg`. If a file is missing, the tile shows the client's name as text, so the page never looks broken.
+
+- Logos you save yourself in `public/assets/clients/` are never overwritten by `npm run fetch:logos` (add `--force` to replace them).
+- `npm run fetch:logos` downloads every logo listed in `scripts/logo-sources.json` (three have confirmed addresses; the rest are detected from each home page). Run it on a computer with internet access.
+- `open scripts/logo-preview.html` shows every logo so you can check them by eye.
+- To fix or replace one, save the file as `public/assets/clients/<slug>.png` (or `.svg`), for example `ey.png`. Client slugs: gsa, cdcr, edd, dhcs, cdph, csac, calpers, hcd, calstrs, doj, fiscal, otsi, ftb, ey, kforce, ust, valiant, getinge. Technology partner slugs (shown in the Technology partners cards): anthropic, databricks, snowflake, forescout, datadog, anaplan. For partner logos, prefer the official logo or partner badge from each company's brand or partner portal and follow its usage guidelines.
+- Only show a client's logo if you have permission to use it.
+
+## Careers page (Ceipal)
+
+`/join-us` (both themes) embeds the Ceipal job widget with the snippet Ceipal provides (`widget.js`, API key and career portal id are in `public/join-us.html` and `public/light/join-us.html`). The widget draws the open positions into the `example-widget-container` box. No environment variable is needed. The key in that snippet is a public widget key, visible to anyone who views the page source. To change portals, replace the two `data-ceipal-...` values in both files.
+
+## Design themes
+
+The site ships with two looks and a Dark | Light switch (bottom right of every page). The choice is remembered in the visitor's browser.
+
+| Theme | Style | Where |
+|---|---|---|
+| Dark (default) | React Email style: pure black, white buttons, teal accent | `public/*.html` |
+| Light | Northrop style: white and navy | `public/light/*.html` |
+
+Every page exists in both themes at the same address (the light copy lives under `/light/`). Old `/light` links keep working.
+
 ## Downloadable PDFs and confirmation emails (Resend)
 
 Every PDF on the site is gated by a short form (first name, last name, email, title, company, optional comments). When a visitor submits it:
@@ -62,7 +105,7 @@ To replace it, overwrite `private/Radian-Solutions-Capability-Statement.pdf` and
 | Variable | What it is |
 |---|---|
 | `RESEND_API_KEY` | Resend API key |
-| `SUPABASE_URL` | `https://imougnqdcbwrhncsavvh.supabase.co` |
+| `SUPABASE_URL` | `https://iazhaltgsiirihtyfltk.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase > Project Settings > API > `service_role` key. Server only. |
 | `DOWNLOAD_SIGNING_SECRET` | Random 32+ byte string: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `SITE_URL` | `https://www.radiansolutions.com` |
