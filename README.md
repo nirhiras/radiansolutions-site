@@ -16,6 +16,23 @@ Every page has a small **Dark | Light** switch in the bottom-right corner. Dark 
 - Both themes share `public/assets/`, the same API routes and the same private PDF.
 - When you change text on a page, change it in **both** `public/<page>.html` and `public/light/<page>.html`.
 
+## Form fields (every form)
+
+Every form (home contact form, capability statement, PDL brochure, Financial Management brochure) collects the same fields, in this order:
+
+| Field | Required | Saved in `web_leads` |
+|---|---|---|
+| First Name | yes | `first_name` |
+| Last Name | yes | `last_name` |
+| Email | yes | `email` |
+| Title | no | `title` |
+| Company | no | `company` |
+| Your Sector | yes (dropdown) | `sector` |
+| Comments | no | `comments` |
+| Source | set by the server, never by the form | `source` (`contact-form`, `pdl-brochure`, ...) |
+
+Sector options: Federal / DoD, State government, Local government / utility, Prime contractor / teaming, Private sector, Other. The list lives in `SECTORS` in `server.js` (checked on the server) and in each page's dropdown; change it in both places, in both themes. The `sector` column was added with `alter table public.web_leads add column if not exists sector text;`.
+
 ## Saving leads (Supabase)
 
 Everyone who requests a document or sends the contact form is saved in the `web_leads` table: name, email, title, company, comments, which document (`source`), and when. Contact-form messages use `source = contact-form`.

@@ -87,6 +87,21 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const clean = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
+// Every form on the site collects the same fields. Required: first name, last name, email, sector.
+// Optional: title, company, comments. "source" is never read from the form: the server sets it from the endpoint / document id.
+const SECTORS = ["Federal / DoD", "State government", "Local government / utility", "Prime contractor / teaming", "Private sector", "Other"];
+function readLead(b) {
+  const lead = {
+    first_name: clean(b.first, 80), last_name: clean(b.last, 80), email: clean(b.email, 200).toLowerCase(),
+    title: clean(b.title, 120) || null, company: clean(b.company, 160) || null,
+    sector: clean(b.sector, 80), comments: clean(b.comments, 4000) || null,
+  };
+  const ok = lead.first_name && lead.last_name && EMAIL_RE.test(lead.email) && SECTORS.includes(lead.sector);
+  return { lead, error: ok ? null : "Please complete all required fields: first name, last name, a valid email and your sector." };
+}
+const leadSummaryHtml = (l) =>
+  `<p><strong>${esc(l.first_name)} ${esc(l.last_name)}</strong><br>Email: ${esc(l.email)}<br>Title: ${esc(l.title || "(none)")}<br>Company: ${esc(l.company || "(none)")}<br>Sector: ${esc(l.sector)}</p>`;
+
 // Simple in-memory rate limit: 8 submissions per IP per 15 minutes.
 const hits = new Map();
 function limited(ip) {
@@ -125,7 +140,8 @@ async function saveLead(row, dedupe) {
       if (found.error) console.error("[leads] LOOKUP FAILED:", found.error.message);
       const id = found.data && found.data[0] && found.data[0].id;
       if (id) {
-        const up = await sb.updateById(id, { ...row, last_requested_at: new Date().toISOString() });
+        const patch = Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== ""));
+        const up = await sb.updateById(id, { ...patch, last_requested_at: new Date().toISOString() });
         if (up.error) console.error("[leads] UPDATE FAILED:", up.error.message); else console.log(`[leads] updated existing lead source=${row.source}`);
         return;
       }
@@ -155,14 +171,13 @@ async function handleDocumentRequest(req, res, forcedDoc) {
   const theme = clean(b.theme, 10) === "light" ? "light" : "dark";
   const variant = pickVariant(doc, theme);
 
-  const first = clean(b.first, 80), last = clean(b.last, 80), title = clean(b.title, 120), company = clean(b.company, 160);
-  const email = clean(b.email, 200).toLowerCase(), comments = clean(b.comments, 2000);
-  if (!first || !last || !title || !company || !EMAIL_RE.test(email))
-    return res.status(422).json({ ok: false, error: "Please complete all required fields." });
+  const { lead, error: leadError } = readLead(b);
+  if (leadError) return res.status(422).json({ ok: false, error: leadError });
+  const { first_name: first, last_name: last, email, title, company, sector, comments } = lead;
   if (!SECRET || !resend) return res.status(500).json({ ok: false, error: "The server is not fully configured yet. Please email info@radiansolutions.com." });
 
   // 1) Save the lead first, so it is never lost if email delivery fails.
-  await saveLead({ source: docId, first_name: first, last_name: last, email, title, company, comments: comments || null }, true);
+  await saveLead({ source: docId, ...lead }, true);
 
   // 2) Confirmation to the visitor, from info@radiansolutions.com (link valid 7 days)
   const emailLink = SITE_URL + signedPath(docId, variant, 7 * 24 * 3600);
@@ -184,10 +199,10 @@ async function handleDocumentRequest(req, res, forcedDoc) {
   // 3) Lead alert to info@radiansolutions.com (a failure here never blocks the visitor)
   const alert = await resend.emails.send({
     from: FROM, to: [NOTIFY], replyTo: email,
-    subject: `New download: ${doc.title} (${company})`,
+    subject: `New download: ${doc.title} (${company || sector})`,
     html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#0d253d">
-      <p><strong>${esc(first)} ${esc(last)}</strong>, ${esc(title)}, ${esc(company)}</p>
-      <p>Email: ${esc(email)}<br>Document: ${esc(doc.title)}<br>Site theme: ${esc(theme)}</p>
+      ${leadSummaryHtml(lead)}
+      <p>Source: ${esc(docId)}<br>Document: ${esc(doc.title)}<br>Site theme: ${esc(theme)}</p>
       <p>Comments: ${comments ? esc(comments) : "(none)"}</p></div>`,
   });
   if (alert.error) console.error("[mail] lead alert FAILED:", JSON.stringify(alert.error));
@@ -202,18 +217,19 @@ app.post("/api/contact", express.json({ limit: "20kb" }), async (req, res) => {
   if (limited(req.ip)) return res.status(429).json({ ok: false, error: "Too many requests. Please try again later." });
   const b = req.body || {};
   if (clean(b.website, 200)) return res.json({ ok: true });
-  const name = clean(b.name, 160), email = clean(b.email, 200).toLowerCase(), sector = clean(b.sector, 80), message = clean(b.message, 4000);
-  if (!name || !message || !EMAIL_RE.test(email)) return res.status(422).json({ ok: false, error: "Please add your name, a valid email and a message." });
+  const { lead, error: leadError } = readLead(b);
+  if (leadError) return res.status(422).json({ ok: false, error: leadError });
+  const { email, sector } = lead, first = lead.first_name, name = `${lead.first_name} ${lead.last_name}`, message = lead.comments || "(no comments)";
   if (!resend) return res.status(500).json({ ok: false, error: "The server is not fully configured yet. Please email info@radiansolutions.com." });
 
-  await saveLead({ source: "contact-form", first_name: name, last_name: "", email, title: null, company: null, comments: `Sector: ${sector || "n/a"}\n\n${message}` }, false);
+  await saveLead({ source: "contact-form", ...lead }, false);
 
   // 1) The message itself goes to info@radiansolutions.com. Replying to it replies to the visitor.
   const alert = await resend.emails.send({
     from: FROM, to: [NOTIFY], replyTo: email,
     subject: `Website message from ${name}`,
-    html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#0d253d"><p><strong>${esc(name)}</strong> (${esc(email)}), sector: ${esc(sector || "n/a")}</p><p style="white-space:pre-wrap">${esc(message)}</p></div>`,
-    text: `${name} (${email})\nSector: ${sector || "n/a"}\n\n${message}`,
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#0d253d">${leadSummaryHtml(lead)}<p>Source: contact-form</p><p style="white-space:pre-wrap">${esc(message)}</p></div>`,
+    text: `${name} (${email})\nTitle: ${lead.title || "(none)"}\nCompany: ${lead.company || "(none)"}\nSector: ${sector}\nSource: contact-form\n\n${message}`,
     tags: [{ name: "source", value: "contact-form" }],
   });
   if (alert.error) {
@@ -225,8 +241,8 @@ app.post("/api/contact", express.json({ limit: "20kb" }), async (req, res) => {
   // 2) Confirmation to the visitor, from the verified sender (info@site.radiansolutions.com)
   const conf = await resend.emails.send({
     from: FROM, to: [email], replyTo: REPLY_TO, subject: "We got your message",
-    html: wrapHtml(`<p>Hi ${esc(name)},</p><p>Thanks for reaching out. We received your message and a real person will reply soon. You can answer this email if you want to add anything.</p>`),
-    text: `Hi ${name},\n\nThanks for reaching out. We received your message and a real person will reply soon. You can answer this email if you want to add anything.\n\nRadian Solutions, LLC\n717 K Street, Suite 403, Sacramento, CA 95814\n(916) 602-1900 | www.radiansolutions.com\n\nYou are receiving this message because you contacted us at radiansolutions.com.`,
+    html: wrapHtml(`<p>Hi ${esc(first)},</p><p>Thanks for reaching out. We received your message and a real person will reply soon. You can answer this email if you want to add anything.</p>`),
+    text: `Hi ${first},\n\nThanks for reaching out. We received your message and a real person will reply soon. You can answer this email if you want to add anything.\n\nRadian Solutions, LLC\n717 K Street, Suite 403, Sacramento, CA 95814\n(916) 602-1900 | www.radiansolutions.com\n\nYou are receiving this message because you contacted us at radiansolutions.com.`,
     tags: [{ name: "source", value: "contact-form" }],
   });
   if (conf.error) console.error("[mail] contact confirmation FAILED:", JSON.stringify(conf.error), `from="${FROM}" to="${email}"`);
