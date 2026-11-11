@@ -156,7 +156,7 @@ async function saveLead(row, dedupe) {
 
 const wrapHtml = (inner) =>
   `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#0d253d;max-width:560px">${inner}
-   <p style="margin-bottom:4px">Radian Solutions, LLC<br>717 K Street, Suite 403, Sacramento, CA 95814<br>(916) 602-1900 &middot; www.radiansolutions.com</p><p style="font-size:13px;color:#5d6c84;margin-top:0">You are receiving this message because you requested information or a document at radiansolutions.com. Reply to this email if you have a question.</p></div>`;
+   <p style="font-size:13px;color:#5d6c84;margin-top:16px">You are receiving this message because you requested information or a document at radiansolutions.com. Reply to this email if you have a question.</p></div>`;
 
 
 // ---------- API ----------
@@ -186,7 +186,7 @@ async function handleDocumentRequest(req, res, forcedDoc) {
     html: wrapHtml(`<p>Hi ${esc(first)},</p><p>Thanks for your interest in Radian Solutions. Here is ${doc.intro}:</p>
       <p><a href="${esc(emailLink)}" style="display:inline-block;background:#0a0a0a;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:999px">Download the ${esc(doc.title)} (PDF)</a></p>
       <p>This link works for 7 days. If you have a requirement in mind, just reply to this email. A real person will answer.</p>`),
-    text: `Hi ${first},\n\nThanks for your interest in Radian Solutions. Download ${doc.intro} (link valid 7 days):\n${emailLink}\n\nIf you have a requirement in mind, just reply to this email.\n\nRadian Solutions, LLC\n717 K Street, Suite 403, Sacramento, CA 95814\n(916) 602-1900 | www.radiansolutions.com\n\nYou are receiving this message because you requested information or a document at radiansolutions.com.`,
+    text: `Hi ${first},\n\nThanks for your interest in Radian Solutions. Download ${doc.intro} (link valid 7 days):\n${emailLink}\n\nIf you have a requirement in mind, just reply to this email.\n\nYou are receiving this message because you requested information or a document at radiansolutions.com.`,
     tags: [{ name: "source", value: docId }],
   });
   if (error) {
@@ -242,7 +242,7 @@ app.post("/api/contact", express.json({ limit: "20kb" }), async (req, res) => {
   const conf = await resend.emails.send({
     from: FROM, to: [email], replyTo: REPLY_TO, subject: "We got your message",
     html: wrapHtml(`<p>Hi ${esc(first)},</p><p>Thanks for reaching out. We received your message and a real person will reply soon. You can answer this email if you want to add anything.</p>`),
-    text: `Hi ${first},\n\nThanks for reaching out. We received your message and a real person will reply soon. You can answer this email if you want to add anything.\n\nRadian Solutions, LLC\n717 K Street, Suite 403, Sacramento, CA 95814\n(916) 602-1900 | www.radiansolutions.com\n\nYou are receiving this message because you contacted us at radiansolutions.com.`,
+    text: `Hi ${first},\n\nThanks for reaching out. We received your message and a real person will reply soon. You can answer this email if you want to add anything.\n\nYou are receiving this message because you contacted us at radiansolutions.com.`,
     tags: [{ name: "source", value: "contact-form" }],
   });
   if (conf.error) console.error("[mail] contact confirmation FAILED:", JSON.stringify(conf.error), `from="${FROM}" to="${email}"`);
@@ -299,7 +299,11 @@ app.get("/logos/:slug", (req, res) => {
   res.status(404).end();
 });
 
-app.use(express.static(PUBLIC_DIR, { extensions: ["html"], maxAge: "1h", index: "index.html" }));
+// Images and other assets are cached for an hour; HTML pages are always re-checked (cheap 304) so visitors never run an old form against the new server.
+app.use(express.static(PUBLIC_DIR, {
+  extensions: ["html"], maxAge: "1h", index: "index.html",
+  setHeaders: (res, filePath) => { if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-cache"); },
+}));
 
 app.use((_req, res) => res.status(404).sendFile(path.join(PUBLIC_DIR, "404.html")));
 
