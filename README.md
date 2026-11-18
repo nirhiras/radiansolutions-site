@@ -95,6 +95,12 @@ The PDFs are not in `public/`, so there is no direct link to them. To add or rep
 
 **Resend setup (once):** create an API key in Resend, verify the domain `radiansolutions.com` (Domains > Add domain, add the DNS records), then set `RESEND_API_KEY` in Railway. Until the domain shows **Verified**, sends from `info@radiansolutions.com` are rejected and visitors see an error. `FROM_EMAIL` (optional) overrides the sender; `LEAD_NOTIFY_EMAIL` changes where the alert goes.
 
+## SLP contracts (California Software Licensing Program)
+
+All SLP contracts live in one panel ("SLP contracts") in the "Software Licensing Program (SLP)" section of `/state-local` (and `/light/state-local`), below the State & Local vehicles. To add a new one (for example Datadog or Rubrik), copy the Forescout block inside that panel (the block that starts with the logo tile) and change the logo slug, name, contract number, term and contract base, in both themes. Also add a row to the "State & Local vehicles" card at the top of the same page, and put the contract number on the partner's card in Technology Partners on the Home page.
+
+Current SLP contract: Forescout, SLP-26-70-0508A, 10/13/2026 to 9/6/2029, offer FORESCOUT-SLP-2026.
+
 ## Pages
 
 | URL | File |
